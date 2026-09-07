@@ -154,6 +154,21 @@
 \cs_new_protected:Npn \hawkdraw_shading_use:n #1 {
     \hawkdraw_shading_create:nV {#1} \l_hawkdraw_shading_colors_clist
 
+    \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
+        \dim_sub:Nn \l__hawkdraw_shading_bbox_xmin_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
+        \dim_sub:Nn \l__hawkdraw_shading_bbox_ymin_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
+        \dim_add:Nn \l__hawkdraw_shading_bbox_xmax_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
+        \dim_add:Nn \l__hawkdraw_shading_bbox_ymax_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
+    }
+
     \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_o_dim
         \l__hawkdraw_shading_bbox_xmin_dim
     \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_o_dim
