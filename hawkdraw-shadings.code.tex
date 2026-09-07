@@ -135,18 +135,18 @@
 \cs_generate_variant:Nn \color_export:nnN { e }
 
 \cs_new_protected:Npn \hawkdraw_shading_set:nnn #1#2#3 {
+    \pdf_object_new:n { hawkdraw_shading_ #1 }
     \tl_if_empty:nTF {#3} {
-        \pdf_object_unnamed_write:ne { dict } {
-            #2 ~
-            /BBox ~ [ 0.0 ~ 0.0 ~ 100.0 ~ 100.0 ] ~
-        }
+        \pdf_object_write:nne { hawkdraw_shading_ #1 } { dict } {#2}
     } {
-        \hawkdraw_support_pdf_write_stream:nee {#1} {#2} {#3}
+        \hawkdraw_support_pdf_write_stream:nee {
+            hawkdraw_shading_ #1
+        } {#2} {#3}
     }
     \tl_const:ce {
         c__hawkdraw_shading_ #1 _tl
     } {
-        \pdf_object_ref_last:
+        \pdf_object_ref:n { hawkdraw_shading_ #1 }
     }
 }
 \cs_generate_variant:Nn \hawkdraw_shading_set:nnn { e }
@@ -155,10 +155,10 @@
     \hawkdraw_shading_create:nV {#1} \l_hawkdraw_shading_colors_clist
 
     \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
-        \dim_sub:Nn \l__hawkdraw_shading_bbox_xmin_dim {
+        \dim_add:Nn \l__hawkdraw_shading_bbox_xmin_dim {
             0.5 \l_hawkdraw_path_linewidth_dim
         }
-        \dim_sub:Nn \l__hawkdraw_shading_bbox_ymin_dim {
+        \dim_add:Nn \l__hawkdraw_shading_bbox_ymin_dim {
             0.5 \l_hawkdraw_path_linewidth_dim
         }
         \dim_add:Nn \l__hawkdraw_shading_bbox_xmax_dim {
@@ -247,15 +247,10 @@
                     \l__hawkdraw_shading_bbox_ymax_o_dim +
                     \l__hawkdraw_shading_bbox_ymin_o_dim
                 ) / 2 -
-                \l__hawkdraw_shading_bbox_ymin_o_dim +
-                \fp_if_nan:nF { \l_hawkdraw_picture_baseline_fp } {
-                    \l__hawkdraw_shading_bbox_ymin_o_dim -
-                    \l_hawkdraw_picture_baseline_fp
-                }
+                \l__hawkdraw_shading_bbox_ymin_o_dim
             } ~
         ] ~
     }
-
     \pdfmanagement_add:nee {
         Page / Resources / Pattern
     } {
