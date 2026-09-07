@@ -27,23 +27,21 @@
 % linear, radial and conic shaings here having type 2, 3 and 6 respectively. Following the PGF approach, ee
 % define shadings as square with a size of 100bp times 100bp. Type 2 and 3 shadings are defined by functions,
 % type 6 shadings are defined by a binary stream.
+% PDF treats shadings as patterns and hence as fill (or stroke). Shadings are defined as rectangular PDF
+% Objects. There are various types of shadings, but we only define linear, radial and conic shaings here
+% which are type 2, 3 and 6 respectively. We define shadings as square with a size of 100bp times 100bp.
+% Type 2 and 3 shadings are defined by functions, type 6 shadings are defined by a binary stream.
 
-% In order to allow for rotation of shadings, we use the PGF approach of defining the shadings twice the
-% size of the path they should fill. Thus, we need to use multiple functions to define the shading, because
-% the outer part of the shading object will be clipped away by the path. We do this by defining the
-% functions in a nested way. The outer function is a type 3 function, which defines the inner functions.
-% The inner functions depend on the type of the shading and the number of colors used.
+% In order to allow for rotation of shadings, we use the PGF approach of scalaing the shadings to twice
+% the size of the path they should fill. Thus, we need to use multiple functions to define linear 
+% shadings, because the outer part of the shading object will be clipped away by the path. We do this by
+% defining the functions in a nested way. The outer function is a type 3 function which defines the inner
+% functions. The inner functions depend on the type of the shading and the number of colors used.
 
 % Every shading defined by its type, the used colors and whether or not it has some offset (for radial or
-% conic shadings) is defined only once and a PDF XObject is created for it. In the PDF, two XObjects are
-% created, one that defines the shading using functions and one that represents a box referring to the
-% shading. Upon use, the latter XObject is (re-)used by placing it in a box which is then scaled to twice the
-% size of the path bounding box, rotated and placed at the center of the relevant path, then clipped by this
-% path.
-
-% Using this approach, it is not possible to apply shadings to strokes. In order to to that, we would need to
-% define shadings as patterns and record the current position of the path in order to position the pattern
-% correctly. This would require two compilation runs.
+% conic shadings) is defined only once and a PDF Object is created for it. In the PDF, two objects are
+% created, one that defines the shading using functions and one as that defines a pattern representing a
+% scaled box referring to the shading.
 
 % ===
 
@@ -51,7 +49,8 @@
     Shading ~ `#1` ~ unknown.
 }
 
-\box_new:N \l_hawkdraw_shading_box
+\int_new:N \g__hawkdraw_shading_int
+\clist_new:N \l_hawkdraw_shading_path_use_clist
 
 \clist_new:N \l_hawkdraw_shading_colors_clist
 \fp_new:N \l_hawkdraw_shading_rotate_fp
@@ -59,10 +58,15 @@
 \bool_new:N \l_hawkdraw_shading_circular_bool
 \fp_new:N \l_hawkdraw_shading_angle_delta_fp
 
-\dim_new:N \l_hawkdraw_shading_bbox_xmin_dim
-\dim_new:N \l_hawkdraw_shading_bbox_xmax_dim
-\dim_new:N \l_hawkdraw_shading_bbox_ymin_dim
-\dim_new:N \l_hawkdraw_shading_bbox_ymax_dim
+\dim_new:N \l__hawkdraw_shading_bbox_xmin_dim
+\dim_new:N \l__hawkdraw_shading_bbox_xmax_dim
+\dim_new:N \l__hawkdraw_shading_bbox_ymin_dim
+\dim_new:N \l__hawkdraw_shading_bbox_ymax_dim
+
+\dim_new:N \l__hawkdraw_shading_bbox_xmin_o_dim
+\dim_new:N \l__hawkdraw_shading_bbox_xmax_o_dim
+\dim_new:N \l__hawkdraw_shading_bbox_ymin_o_dim
+\dim_new:N \l__hawkdraw_shading_bbox_ymax_o_dim
 
 \exp_args_generate:n { NVVVV }
 
@@ -82,16 +86,17 @@
             \hawkdraw_scope_reset_bb_begin:
                 \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
                 \tl_use:N \g_hawkdraw_softpath_original_tl
-                \draw_path_use_clear:n { clip }
-                \dim_set_eq:NN \l_hawkdraw_shading_bbox_xmin_dim
+                \draw_path_use:n { }
+                \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_dim
                     \g_draw_bb_xmin_dim
-                \dim_set_eq:NN \l_hawkdraw_shading_bbox_xmax_dim
+                \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_dim
                     \g_draw_bb_xmax_dim
-                \dim_set_eq:NN \l_hawkdraw_shading_bbox_ymin_dim
+                \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymin_dim
                     \g_draw_bb_ymin_dim
-                \dim_set_eq:NN \l_hawkdraw_shading_bbox_ymax_dim
+                \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymax_dim
                     \g_draw_bb_ymax_dim
-                \hawkdraw_shading_fill:n {#1}
+                \hawkdraw_shading_use:n {#1}
+                \draw_path_use_clear:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
                 \bool_gset_false:N \g__hawkdraw_path_use_clip_bool
             \hawkdraw_scope_reset_bb_end:
         }
@@ -106,74 +111,178 @@
     shading ~ circular      .initial:n      = { false } ,
     shading ~ angle ~ delta .fp_set:N       = \l_hawkdraw_shading_angle_delta_fp ,
     shading ~ angle ~ delta .initial:n      = { 360 } ,
+    shading ~ type          .code:n        = {
+        \clist_set:Nn \l_hawkdraw_shading_path_use_clist {#1}
+    },
+    shading ~ type          .initial:n     = { fill } ,
 }
 
 \keys_define:nn { hawkdraw / path / node } {
     shading                 .code:n         = {
         \tl_put_right:Nn \l_hawkdraw_node_postactions_tl {
-            \draw_path_use:n { clip }
-            \dim_set_eq:NN \l_hawkdraw_shading_bbox_xmin_dim
+            \draw_path_use:n { }
+            \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_dim
                 \g_draw_bb_xmin_dim
-            \dim_set_eq:NN \l_hawkdraw_shading_bbox_xmax_dim
+            \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_dim
                 \g_draw_bb_xmax_dim
-            \dim_set_eq:NN \l_hawkdraw_shading_bbox_ymin_dim
+            \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymin_dim
                 \g_draw_bb_ymin_dim
-            \dim_set_eq:NN \l_hawkdraw_shading_bbox_ymax_dim
+            \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymax_dim
                 \g_draw_bb_ymax_dim
-            \hawkdraw_shading_fill:n {#1}
+            \hawkdraw_shading_use:n {#1}
+            \draw_path_use:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
         }
     } ,
 }
 
 \tl_new:N \l__hawkdraw_shading_color_value_tmp_tl
 \seq_new:N \l__hawkdraw_shading_color_values_seq
-\box_new:N \l__hawkdraw_shading_object_box
 
 \cs_generate_variant:Nn \color_export:nnN { e }
 
 \cs_new_protected:Npn \hawkdraw_shading_set:nnn #1#2#3 {
-    \hbox_set_to_wd:Nnn \l__hawkdraw_shading_object_box { 100bp } {
-        \vbox_to_ht:nn { 100bp } {
-            \skip_vertical:n { 0pt plus 1fil }
-            \hawkdraw_support_pdfliteral:n { /Sh ~ sh }
-        }
-        \skip_horizontal:n { 0pt plus 1fil }
-    }
-    \pdf_object_new:n {
-        hawkdraw_shading_ #1
-    }
+    \pdf_object_new:n { hawkdraw_shading_ #1 }
     \tl_if_empty:nTF {#3} {
-        \pdf_object_write:nne {
+        \pdf_object_write:nne { hawkdraw_shading_ #1 } { dict } {#2}
+    } {
+        \hawkdraw_support_pdf_write_stream:nee {
             hawkdraw_shading_ #1
-        } { dict } {
-            #2
-        }
-    } {
-        \hawkdraw_support_pdf_write_stream:nee {#1} {#2} {#3}
+        } {#2} {#3}
     }
-    \hawkdraw_support_pdfxform:nnN { } {
-        % no need to set up a pattern dictionary
-        % because shadings are directly used via the sh operator
-        /Shading ~ << ~
-            /Sh ~
-            \pdf_object_ref:n {
-                hawkdraw_shading_ #1
-            } ~
-        >>
-    } \l__hawkdraw_shading_object_box
-    \int_const:cn {
-        c__hawkdraw_shading_ #1 _int
+    \tl_const:ce {
+        c__hawkdraw_shading_ #1 _tl
     } {
-        \hawkdraw_support_pdfxform_last:
+        \pdf_object_ref:n { hawkdraw_shading_ #1 }
     }
 }
 \cs_generate_variant:Nn \hawkdraw_shading_set:nnn { e }
 
 \cs_new_protected:Npn \hawkdraw_shading_use:n #1 {
-    \hawkdraw_support_pdfxform_use:c {
-        c__hawkdraw_shading_ #1 _int
+    \hawkdraw_shading_create:nV {#1} \l_hawkdraw_shading_colors_clist
+
+    \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
+        \dim_add:Nn \l__hawkdraw_shading_bbox_xmin_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
+        \dim_add:Nn \l__hawkdraw_shading_bbox_ymin_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
+        \dim_add:Nn \l__hawkdraw_shading_bbox_xmax_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
+        \dim_add:Nn \l__hawkdraw_shading_bbox_ymax_dim {
+            0.5 \l_hawkdraw_path_linewidth_dim
+        }
     }
+
+    \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_o_dim
+        \l__hawkdraw_shading_bbox_xmin_dim
+    \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_o_dim
+        \l__hawkdraw_shading_bbox_xmax_dim
+    \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymin_o_dim
+        \l__hawkdraw_shading_bbox_ymin_dim
+    \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymax_o_dim
+        \l__hawkdraw_shading_bbox_ymax_dim
+
+    \bool_lazy_and:nnT {
+        \l_hawkdraw_shading_circular_bool
+    } {
+        \str_if_eq_p:nn {#1} { radial }
+    } {
+        \dim_set:Nn \l__hawkdraw_shading_bbox_xmax_dim {
+            \dim_max:nn {
+                \l__hawkdraw_shading_bbox_xmax_dim
+            } {
+                \l__hawkdraw_shading_bbox_ymax_dim
+            }
+        }
+        \dim_set:Nn \l__hawkdraw_shading_bbox_xmin_dim {
+            \dim_min:nn {
+                \l__hawkdraw_shading_bbox_xmin_dim
+            } {
+                \l__hawkdraw_shading_bbox_ymin_dim
+            }
+        }
+        \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymax_dim
+            \l__hawkdraw_shading_bbox_xmax_dim
+        \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymin_dim
+            \l__hawkdraw_shading_bbox_xmin_dim
+    }
+
+    \int_gincr:N \g__hawkdraw_shading_int
+    \pdf_object_unnamed_write:ne { dict } {
+        /Type ~ /Pattern ~
+        /PatternType ~ 2 ~
+        /Shading ~ \tl_use:c {
+            c__hawkdraw_shading_
+            #1
+            . \clist_use:N \l_hawkdraw_shading_colors_clist
+            \str_if_eq:nnT {#1} { radial } {
+                . \fp_to_decimal:n { \l_hawkdraw_shading_offset_fp }
+            }
+            \str_if_eq:nnT {#1} { conic } {
+                . \fp_to_decimal:n { \l_hawkdraw_shading_angle_delta_fp }
+            }
+            _tl
+        } ~
+        /Matrix ~ [ ~
+            \hawkdraw_pdf_transformation_matrix:nnnnnnn {
+                -50bp
+            } {
+                -50bp
+            } {
+                (
+                    \l__hawkdraw_shading_bbox_xmax_dim - 
+                    \l__hawkdraw_shading_bbox_xmin_dim
+                ) / 50bp
+            } {
+                (
+                    \l__hawkdraw_shading_bbox_ymax_dim - 
+                    \l__hawkdraw_shading_bbox_ymin_dim
+                ) / 50bp
+            } {
+                \l_hawkdraw_shading_rotate_fp
+            } {
+                (
+                    \l__hawkdraw_shading_bbox_xmax_o_dim +
+                    \l__hawkdraw_shading_bbox_xmin_o_dim
+                ) / 2 -
+                \l__hawkdraw_shading_bbox_xmin_o_dim
+            } {
+                (
+                    \l__hawkdraw_shading_bbox_ymax_o_dim +
+                    \l__hawkdraw_shading_bbox_ymin_o_dim
+                ) / 2 -
+                \l__hawkdraw_shading_bbox_ymin_o_dim
+            } ~
+        ] ~
+    }
+    \pdfmanagement_add:nee {
+        Page / Resources / Pattern
+    } {
+        hawkdraw Shading
+        \int_use:N \g__hawkdraw_shading_int
+    } {
+        \pdf_object_ref_last:
+    }
+
+    \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { fill } {
+        \hawkdraw_support_pdfliteral_direct:n {
+            /Pattern ~ cs ~ /hawkdraw Shading
+            \int_use:N \g__hawkdraw_shading_int
+            \c_space_tl scn ~
+        }
+    }
+    \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
+        \hawkdraw_support_pdfliteral_direct:n {
+            /Pattern ~ CS ~ /hawkdraw Shading
+            \int_use:N \g__hawkdraw_shading_int
+            \c_space_tl SCN ~
+        }
+    }   
 }
+
+% ===
 
 \cs_new_protected:Npn \__hawkdraw_shading_color_set_value:Nnnn #1#2#3#4 {
     \hawkdraw_case_color_space:nnn {
@@ -198,87 +307,7 @@
 }
 \cs_generate_variant:Nn \hawkdraw_shading_color_set_values:Nn { NV }
 
-\cs_new_protected:Npn \hawkdraw_shading_fill:n #1 {
-    \hawkdraw_shading_create:nV {#1} \l_hawkdraw_shading_colors_clist
-    \hbox_set:Nn \l_hawkdraw_shading_box {
-        \hawkdraw_shading_use:n {
-            #1
-            . \clist_use:N \l_hawkdraw_shading_colors_clist
-            \str_if_eq:nnT {#1} { radial } {
-                . \fp_to_decimal:n { \l_hawkdraw_shading_offset_fp }
-            }
-            \str_if_eq:nnT {#1} { conic } {
-                . \fp_to_decimal:n { \l_hawkdraw_shading_angle_delta_fp }
-            }
-        }
-    }
-    % scale to 2 * width of current bbox, 2 * height of current bbox
-    % translate to center of current bbox
-    \draw_transform_shift:n {
-        (
-            \l_hawkdraw_shading_bbox_xmin_dim + (
-                \l_hawkdraw_shading_bbox_xmax_dim -
-                \l_hawkdraw_shading_bbox_xmin_dim
-            ) / 2
-        ,
-            \l_hawkdraw_shading_bbox_ymin_dim + (
-                \l_hawkdraw_shading_bbox_ymax_dim -
-                \l_hawkdraw_shading_bbox_ymin_dim
-            ) / 2
-        )
-    }
-    \draw_transform_rotate:n {
-        \l_hawkdraw_shading_rotate_fp
-    }
-    \bool_lazy_and:nnT {
-        \l_hawkdraw_shading_circular_bool
-    } {
-        \str_if_eq_p:nn {#1} { radial }
-    } {
-        \dim_set:Nn \l_hawkdraw_shading_bbox_xmax_dim {
-            \dim_max:nn {
-                \l_hawkdraw_shading_bbox_xmax_dim
-            } {
-                \l_hawkdraw_shading_bbox_ymax_dim
-            }
-        }
-        \dim_set:Nn \l_hawkdraw_shading_bbox_xmin_dim {
-            \dim_min:nn {
-                \l_hawkdraw_shading_bbox_xmin_dim
-            } {
-                \l_hawkdraw_shading_bbox_ymin_dim
-            }
-        }
-        \dim_set_eq:NN \l_hawkdraw_shading_bbox_ymax_dim
-            \l_hawkdraw_shading_bbox_xmax_dim
-        \dim_set_eq:NN \l_hawkdraw_shading_bbox_ymin_dim
-            \l_hawkdraw_shading_bbox_xmin_dim
-    }
-    \box_resize_to_wd_and_ht:Nnn \l_hawkdraw_shading_box {
-        \fp_to_dim:n {
-            (
-                \l_hawkdraw_shading_bbox_xmax_dim -
-                \l_hawkdraw_shading_bbox_xmin_dim
-            ) * 2
-        }
-    } {
-        \fp_to_dim:n {
-            (
-                \l_hawkdraw_shading_bbox_ymax_dim -
-                \l_hawkdraw_shading_bbox_ymin_dim
-            ) * 2
-        }
-    }
-    \draw_box_use:Nn \l_hawkdraw_shading_box {
-        (
-            \l_hawkdraw_shading_bbox_xmin_dim -
-            \l_hawkdraw_shading_bbox_xmax_dim
-        ,
-            \l_hawkdraw_shading_bbox_ymin_dim -
-            \l_hawkdraw_shading_bbox_ymax_dim
-        )
-    }
-}
+% ===
 
 \cs_new_protected:Npn \hawkdraw_shading_create:nn #1#2 {
     \cs_if_exist_use:cTF { hawkdraw_shading_ #1 :n } {
@@ -346,11 +375,11 @@
 }
 
 \cs_new_protected:Npn \hawkdraw_shading_linear:n #1 {
-    \int_if_exist:cF {
+    \tl_if_exist:cF {
         c__hawkdraw_shading_
         linear
         . #1
-        _int
+        _tl
     } {
         \hawkdraw_shading_color_set_values:Nn
             \l__hawkdraw_shading_color_values_seq
@@ -438,12 +467,12 @@
 }
 
 \cs_new_protected:Npn \hawkdraw_shading_radial:n #1 {
-    \int_if_exist:cF {
+    \tl_if_exist:cF {
         c__hawkdraw_shading_
         radial
         . #1
         . \fp_to_decimal:n { \l_hawkdraw_shading_offset_fp }
-        _int
+        _tl
     } {
         \hawkdraw_shading_color_set_values:Nn
             \l__hawkdraw_shading_color_values_seq
@@ -654,18 +683,20 @@
     }
 }
 
+\tl_new:N \l__hawkdraw_shading_conic_stream_tl
+
 \cs_new_protected:Npn \hawkdraw_shading_conic:n #1 {
-    \int_if_exist:cF {
+    \tl_if_exist:cF {
         c__hawkdraw_shading_
         conic
         . #1
         . \fp_to_decimal:n { \l_hawkdraw_shading_angle_delta_fp }
-        _int
+        _tl
     } {
         \hawkdraw_shading_conic_color_set_values:Nn
             \l__hawkdraw_shading_color_values_seq
             {#1}
-        \hawkdraw_shading_conic_stream:N \l_tmpa_tl
+        \hawkdraw_shading_conic_stream:N \l__hawkdraw_shading_conic_stream_tl
         \hawkdraw_shading_set:enn {
             conic
             . #1
@@ -699,7 +730,7 @@
                 }
             ] ~
         } {
-            \tl_use:N \l_tmpa_tl
+            \tl_use:N \l__hawkdraw_shading_conic_stream_tl
         }
     }
 }
