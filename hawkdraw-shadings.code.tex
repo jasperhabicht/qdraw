@@ -77,7 +77,9 @@
 }
 \cs_set_protected:Npn \hawkdraw_scope_reset_bb_end: {
         \__draw_scope_bb_end:
-        \hawkdraw_path_use_stroke_bb:
+        \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
+            \hawkdraw_path_use_stroke_bb:
+        }
     \draw_scope_end:
 }
 
@@ -87,7 +89,9 @@
             \hawkdraw_scope_reset_bb_begin:
                 \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
                 \tl_use:N \g_hawkdraw_softpath_original_tl
-                \hawkdraw_path_use_stroke_bb:
+                \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
+                    \hawkdraw_path_use_stroke_bb:
+                }
                 \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_dim
                     \g_draw_bb_xmin_dim
                 \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_dim
@@ -121,6 +125,9 @@
 \keys_define:nn { hawkdraw / path / node } {
     shading                 .code:n         = {
         \tl_put_right:Nn \l_hawkdraw_node_postactions_tl {
+            \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
+                \hawkdraw_path_use_stroke_bb:
+            }
             \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_dim
                 \g_draw_bb_xmin_dim
             \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_dim

@@ -37,7 +37,9 @@
             \draw_scope_begin:
                 \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
                 \tl_use:N \g_hawkdraw_softpath_original_tl
-                \hawkdraw_path_use_stroke_bb:
+                \clist_if_in:NnT \l_hawkdraw_pattern_path_use_clist { stroke } {
+                    \hawkdraw_path_use_stroke_bb:
+                }
                 \hawkdraw_pattern_use:nV {#1} \l_hawkdraw_pattern_keys_clist
                 \draw_path_use_clear:e { \clist_use:N \l_hawkdraw_pattern_path_use_clist }
                 \bool_gset_false:N \g__hawkdraw_path_use_clip_bool
@@ -61,6 +63,9 @@
 \keys_define:nn { hawkdraw / path / node } {
     pattern                 .code:n         = {
         \tl_put_right:Nn \l_hawkdraw_node_postactions_tl {
+            \clist_if_in:NnT \l_hawkdraw_pattern_path_use_clist { stroke } {
+                \hawkdraw_path_use_stroke_bb:
+            }
             \hawkdraw_pattern_use:nV {#1} \l_hawkdraw_pattern_keys_clist
             \draw_path_use:e { \clist_use:N \l_hawkdraw_pattern_path_use_clist }
         }
