@@ -340,12 +340,7 @@
     }
 }
 
-\cs_new_protected:Npn \hawkdraw_bb_add_linewidth: {
-    \dim_gadd:Nn \g_draw_bb_xmax_dim { 0.5 \l_hawkdraw_path_linewidth_dim }
-    \dim_gsub:Nn \g_draw_bb_xmin_dim { 0.5 \l_hawkdraw_path_linewidth_dim }
-    \dim_gadd:Nn \g_draw_bb_ymax_dim { 0.5 \l_hawkdraw_path_linewidth_dim }
-    \dim_gsub:Nn \g_draw_bb_ymin_dim { 0.5 \l_hawkdraw_path_linewidth_dim }
-}
+\cs_set_eq:NN \hawkdraw_path_use_stroke_bb: \__draw_path_use_stroke_bb:
 
 % ===
 
