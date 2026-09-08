@@ -442,6 +442,9 @@
         } {
             \clist_item:Nn \l_hawkdraw_node_anchor_poles_clist { 2 }
         } \l_hawkdraw_point_at_fp
+        \clist_if_in:NnT \l_hawkdraw_path_use_clist { stroke } {
+            \hawkdraw_path_use_stroke_bb:
+        }
         \tag_socket_use:n { hawkdraw / node / end }
     \draw_scope_end:
 }
@@ -598,6 +601,10 @@
                 \keys_set_exclude_groups:nnn { hawkdraw / path } { tag } {#1}
                 \hawkdraw_path_set_options:
                 \tl_use:N \l__hawkdraw_node_frame_path_tl
+                % Adjust global bounding box if path is stroked
+                \clist_if_in:NnT \l_hawkdraw_path_use_clist { stroke } {
+                    \hawkdraw_path_use_stroke_bb:
+                }
                 \bool_set_false:N \l_draw_bb_update_bool
                 \tl_use:N \l_hawkdraw_node_postactions_tl
                 \clist_remove_duplicates:N \l_hawkdraw_path_use_clist

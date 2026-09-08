@@ -25,7 +25,7 @@
 % shadings respectively.
 
 % Since we want shadings to be reusable, we define them as PDF objects with a size of 100bp times 100bp.
-% Type 2 and 3 shadings are defined by functions, type 6 shadings are defined by a binary stream. 
+% Type 2 and 3 shadings are defined by functions, type 6 shadings are defined by a binary stream.
 
 % Every shading defined by its type, the used colors and whether or not it has some offset (for radial or
 % conic shadings) is defined separatey as PDF Object. In the PDF, two objects are created for every use of
@@ -33,7 +33,7 @@
 % scaled box referring to the shading.
 
 % In order to allow for rotation of shadings, we use the PGF approach of scaling the shadings to twice
-% the size of the path they should apply to. Thus, we need to use multiple functions to define linear 
+% the size of the path they should apply to. Thus, we need to use multiple functions to define linear
 % shadings, because the outer part of the shading object will be clipped away by the path. We do this by
 % defining the functions in a nested way. The outer function is a type 3 function which defines the inner
 % functions. The inner functions depend on the type of the shading and the number of colors used.
@@ -68,12 +68,15 @@
 \keys_define:nn { hawkdraw / path } {
     shading                 .code:n         = {
         \tl_put_right:Nn \l_hawkdraw_path_preactions_tl {
+            % Calculate bounding box of path before applying shading, restore original values later
             \hawkdraw_scope_reset_bb_begin:
                 \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
                 \tl_use:N \g_hawkdraw_softpath_original_tl
+                % Adjust global bounding box if shading is applied to stroke
                 \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
                     \hawkdraw_path_use_stroke_bb:
                 }
+                % Adjust path bounding box if shading is applied to stroke
                 \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
                 \hawkdraw_shading_use:n {#1}
                 \draw_path_use_clear:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
@@ -91,18 +94,16 @@
     shading ~ circular      .initial:n      = { false } ,
     shading ~ angle ~ delta .fp_set:N       = \l_hawkdraw_shading_angle_delta_fp ,
     shading ~ angle ~ delta .initial:n      = { 360 } ,
-    shading ~ type          .code:n        = {
+    shading ~ type          .code:n         = {
         \clist_set:Nn \l_hawkdraw_shading_path_use_clist {#1}
     },
-    shading ~ type          .initial:n     = { fill } ,
+    shading ~ type          .initial:n      = { fill } ,
 }
 
 \keys_define:nn { hawkdraw / path / node } {
     shading                 .code:n         = {
         \tl_put_right:Nn \l_hawkdraw_node_postactions_tl {
-            \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
-                \hawkdraw_path_use_stroke_bb:
-            }
+            % Adjust path bounding box if shading is applied to stroke
             \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
             \hawkdraw_shading_use:n {#1}
             \draw_path_use:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
@@ -135,6 +136,7 @@
 \cs_new_protected:Npn \hawkdraw_shading_use:n #1 {
     \hawkdraw_shading_create:nV {#1} \l_hawkdraw_shading_colors_clist
 
+    % Store original bounding box values for later positioning of pattern
     \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_o_dim
         \l__hawkdraw_shading_bbox_xmin_dim
     \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_o_dim
@@ -192,12 +194,12 @@
                 -50bp
             } {
                 (
-                    \l__hawkdraw_shading_bbox_xmax_dim - 
+                    \l__hawkdraw_shading_bbox_xmax_dim -
                     \l__hawkdraw_shading_bbox_xmin_dim
                 ) / 50bp
             } {
                 (
-                    \l__hawkdraw_shading_bbox_ymax_dim - 
+                    \l__hawkdraw_shading_bbox_ymax_dim -
                     \l__hawkdraw_shading_bbox_ymin_dim
                 ) / 50bp
             } {
@@ -243,7 +245,7 @@
             \int_use:N \g__hawkdraw_shading_int
             \c_space_tl SCN ~
         }
-    }   
+    }
 }
 
 % ===

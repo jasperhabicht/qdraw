@@ -37,6 +37,7 @@
             \draw_scope_begin:
                 \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
                 \tl_use:N \g_hawkdraw_softpath_original_tl
+                % Adjust global bounding box if pattern is applied to stroke
                 \clist_if_in:NnT \l_hawkdraw_pattern_path_use_clist { stroke } {
                     \hawkdraw_path_use_stroke_bb:
                 }
@@ -50,22 +51,19 @@
     pattern ~ style ~ add   .code:n         = {
         \clist_put_right:Nn \l_hawkdraw_pattern_keys_clist {#1}
     } ,
-    pattern ~ tile ~ size   .fp_set:N      = \l_hawkdraw_pattern_tile_size_fp ,
-    pattern ~ tile ~ size   .initial:n     = { ( 10pt , 10pt ) } ,
-    pattern ~ tile ~ size   .groups:n      = { pattern / tile } ,
-    pattern ~ type          .code:n        = {
+    pattern ~ tile ~ size   .fp_set:N       = \l_hawkdraw_pattern_tile_size_fp ,
+    pattern ~ tile ~ size   .initial:n      = { ( 10pt , 10pt ) } ,
+    pattern ~ tile ~ size   .groups:n       = { pattern / tile } ,
+    pattern ~ type          .code:n         = {
         \clist_set:Nn \l_hawkdraw_pattern_path_use_clist {#1}
     },
-    pattern ~ type          .initial:n     = { fill } ,
+    pattern ~ type          .initial:n      = { fill } ,
     pattern ~ type   .groups:n      = { pattern / tile } ,
 }
 
 \keys_define:nn { hawkdraw / path / node } {
     pattern                 .code:n         = {
         \tl_put_right:Nn \l_hawkdraw_node_postactions_tl {
-            \clist_if_in:NnT \l_hawkdraw_pattern_path_use_clist { stroke } {
-                \hawkdraw_path_use_stroke_bb:
-            }
             \hawkdraw_pattern_use:nV {#1} \l_hawkdraw_pattern_keys_clist
             \draw_path_use:e { \clist_use:N \l_hawkdraw_pattern_path_use_clist }
         }
@@ -199,7 +197,7 @@
             }
             \c_space_tl SCN ~
         }
-    }   
+    }
 }
 \cs_generate_variant:Nn \hawkdraw_pattern_use:nn { nV }
 
