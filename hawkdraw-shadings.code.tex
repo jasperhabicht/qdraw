@@ -73,16 +73,6 @@
 
 \exp_args_generate:n { NVVVV }
 
-\cs_set_protected:Npn \hawkdraw_scope_reset_bb_begin: {
-    \draw_scope_begin:
-        \hawkdraw_path_save_bb:
-        \__draw_path_reset_limits:
-}
-\cs_set_protected:Npn \hawkdraw_scope_reset_bb_end: {
-        \hawkdraw_path_restore_bb:
-    \draw_scope_end:
-}
-
 \keys_define:nn { hawkdraw / path } {
     shading                 .code:n         = {
         \tl_put_right:Nn \l_hawkdraw_path_preactions_tl {

@@ -344,6 +344,16 @@
 
 \cs_set_eq:NN \hawkdraw_path_use_stroke_bb: \__draw_path_use_stroke_bb:
 
+\cs_set_protected:Npn \hawkdraw_scope_reset_bb_begin: {
+    \draw_scope_begin:
+        \hawkdraw_path_save_bb:
+        \__draw_path_reset_limits:
+}
+\cs_set_protected:Npn \hawkdraw_scope_reset_bb_end: {
+        \hawkdraw_path_restore_bb:
+    \draw_scope_end:
+}
+
 \dim_new:N \g__hawkdraw_path_xmin_dim
 \dim_new:N \g__hawkdraw_path_xmax_dim
 \dim_new:N \g__hawkdraw_path_ymin_dim
