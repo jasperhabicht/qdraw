@@ -1809,6 +1809,8 @@ The option \macro{pattern} fills the current path with a pattern. The key takes 
 \end{macrodef}
 Patterns can be styled by passing the relevant path options to the options \macro{pattern style set} and \macro{pattern style add}. The option \macro{pattern style set} sets the style for the pattern of the current path. The options \macro{pattern style add} appends the relevant styles to the existing styles. All options that are available for paths are also available for patterns.
 
+Note that patterns in general inherit the style set to the original path. Therefore, if the option \macro{corner arc} is set to a non-zero value for the original path, the pattern will also be drawn with rounded corners. If this is not desired, the option \macro{corner arc} can be set to \qty{0}{\point} using the option \macro{pattern style set} or \macro{pattern style add}.
+
 \begin{codeexamplecolumns}
 \begin{hawkdraw}
   \path[
