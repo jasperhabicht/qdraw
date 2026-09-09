@@ -44,7 +44,9 @@
     Shading ~ `#1` ~ unknown.
 }
 
-\int_new:N \g__hawkdraw_shading_int
+\int_new:N \g__hawkdraw_shading_id_int
+\int_new:N \g__hawkdraw_shading_obj_int
+\box_new:N \l__hawkdraw_shading_box
 \clist_new:N \l_hawkdraw_shading_path_use_clist
 
 \clist_new:N \l_hawkdraw_shading_colors_clist
@@ -63,25 +65,61 @@
 \dim_new:N \l__hawkdraw_shading_bbox_ymin_o_dim
 \dim_new:N \l__hawkdraw_shading_bbox_ymax_o_dim
 
+\dim_new:N \l__hawkdraw_shading_path_linewidth_dim
+
 \exp_args_generate:n { NVVVV }
+
+\tl_new:N \l__hawkdraw_shading_path_options_tl
+\hook_gput_code:nnn { hawkdraw / options / before } { hawkdraw / shading } {
+    \tl_set_eq:NN \l__hawkdraw_shading_path_options_tl \l__hawkdraw_path_options_tl
+}
 
 \keys_define:nn { hawkdraw / path } {
     shading                 .code:n         = {
+        \int_gincr:N \g__hawkdraw_shading_id_int
         \tl_put_right:Nn \l_hawkdraw_path_preactions_tl {
-            % Calculate bounding box of path before applying shading, restore original values later
-            \hawkdraw_scope_reset_bb_begin:
-                \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
-                \tl_use:N \g_hawkdraw_softpath_original_tl
-                % Adjust global bounding box if shading is applied to stroke
-                \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
-                    \hawkdraw_path_use_stroke_bb:
+            \pdfxform_new:enn {
+                hawkdraw_shading_ \int_use:N \g__hawkdraw_shading_id_int
+            } { } {
+                \draw_suspend_begin:
+                    \draw_begin:
+                        \tl_set_eq:NN \l__hawkdraw_path_options_tl \l__hawkdraw_shading_path_options_tl
+                        \hawkdraw_path_set_options:
+                        \tl_analysis_log:N \l__draw_linewidth_dim
+                        \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
+                        \tl_use:N \g_hawkdraw_softpath_original_tl
+                        \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
+                        \hawkdraw_shading_use:n {#1}
+                        \draw_path_use_clear:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
+                    \draw_end:
+                \draw_suspend_end:
+            }
+            \hbox_set:Nn \l__hawkdraw_shading_box {
+                \pdfxform_use:e {
+                    hawkdraw_shading_ \int_use:N \g__hawkdraw_shading_id_int
                 }
-                % Adjust path bounding box if shading is applied to stroke
-                \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
-                \hawkdraw_shading_use:n {#1}
-                \draw_path_use_clear:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
                 \bool_gset_false:N \g__hawkdraw_path_use_clip_bool
-            \hawkdraw_scope_reset_bb_end:
+            }
+            \clist_if_in:NnTF \l_hawkdraw_shading_path_use_clist { stroke } {
+                \draw_box_use:Nn \l__hawkdraw_shading_box {
+                    -0.5 * \l_hawkdraw_path_linewidth_dim
+                ,
+                    \fp_if_nan:nTF { \l_hawkdraw_picture_baseline_fp } {
+                        -0.5 * \l_hawkdraw_path_linewidth_dim
+                    } {
+                        \l_hawkdraw_picture_baseline_fp
+                    }
+                }
+            } {
+                \draw_box_use:Nn \l__hawkdraw_shading_box {
+                    0pt ,
+                    \fp_if_nan:nTF { \l_hawkdraw_picture_baseline_fp } {
+                        0pt
+                    } {
+                        \l_hawkdraw_picture_baseline_fp
+                    }
+                }
+            }
         }
     } ,
     shading ~ colors        .clist_set:N    = \l_hawkdraw_shading_colors_clist ,
@@ -102,11 +140,46 @@
 
 \keys_define:nn { hawkdraw / path / node } {
     shading                 .code:n         = {
+        \int_gincr:N \g__hawkdraw_shading_id_int
         \tl_put_right:Nn \l_hawkdraw_node_postactions_tl {
-            % Adjust path bounding box if shading is applied to stroke
-            \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
-            \hawkdraw_shading_use:n {#1}
-            \draw_path_use:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
+            \pdfxform_new:enn {
+                hawkdraw_shading_ \int_use:N \g__hawkdraw_shading_id_int
+            } { } {
+                \draw_suspend_begin:
+                    \draw_begin:
+                        \tl_set_eq:NN \l__hawkdraw_path_options_tl \l__hawkdraw_shading_path_options_tl
+                        \hawkdraw_path_set_options:
+                        \draw_transform_shift:n {
+                            0.5 * \l_hawkdraw_node_natural_width_dim ,
+                            0.5 * \l_hawkdraw_node_natural_height_dim
+                        }
+                        \tl_use:N \l__hawkdraw_node_frame_path_tl
+                        \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
+                        \hawkdraw_shading_use:n {#1}
+                        \draw_path_use:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
+                    \draw_end:
+                \draw_suspend_end:
+            }
+            \hbox_set:Nn \l__hawkdraw_shading_box {
+                \pdfxform_use:e {
+                    hawkdraw_shading_ \int_use:N \g__hawkdraw_shading_id_int
+                }
+                \bool_gset_false:N \g__hawkdraw_path_use_clip_bool
+            }
+            \clist_if_in:NnTF \l_hawkdraw_shading_path_use_clist { stroke } {
+                \draw_box_use:Nn \l__hawkdraw_shading_box {
+                    -0.5 * \l_hawkdraw_node_natural_width_dim
+                    -0.5 * \l_hawkdraw_path_linewidth_dim
+                ,
+                    -0.5 * \l_hawkdraw_node_natural_height_dim
+                    -0.5 * \l_hawkdraw_path_linewidth_dim
+                }
+            } {
+                \draw_box_use:Nn \l__hawkdraw_shading_box {
+                    -0.5 * \l_hawkdraw_node_natural_width_dim ,
+                    -0.5 * \l_hawkdraw_node_natural_height_dim
+                }
+            }
         }
     } ,
 }
@@ -146,6 +219,11 @@
     \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymax_o_dim
         \l__hawkdraw_shading_bbox_ymax_dim
 
+    \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
+        \dim_set_eq:NN \l__hawkdraw_shading_path_linewidth_dim
+            \l_hawkdraw_path_linewidth_dim
+    }
+
     \bool_lazy_and:nnT {
         \l_hawkdraw_shading_circular_bool
     } {
@@ -171,7 +249,7 @@
             \l__hawkdraw_shading_bbox_xmin_dim
     }
 
-    \int_gincr:N \g__hawkdraw_shading_int
+    \int_gincr:N \g__hawkdraw_shading_obj_int
     \pdf_object_unnamed_write:ne { dict } {
         /Type ~ /Pattern ~
         /PatternType ~ 2 ~
@@ -208,18 +286,14 @@
                 (
                     \l__hawkdraw_shading_bbox_xmax_o_dim +
                     \l__hawkdraw_shading_bbox_xmin_o_dim
-                ) / 2 -
-                \g_draw_bb_xmin_dim
+                ) / 2 +
+                0.5 * \l__hawkdraw_shading_path_linewidth_dim
             } {
                 (
                     \l__hawkdraw_shading_bbox_ymax_o_dim +
                     \l__hawkdraw_shading_bbox_ymin_o_dim
-                ) / 2 -
-                \fp_if_nan:nTF { \l_hawkdraw_picture_baseline_fp } {
-                    \g_draw_bb_ymin_dim
-                } {
-                    \l_hawkdraw_picture_baseline_fp
-                }
+                ) / 2 +
+                0.5 * \l__hawkdraw_shading_path_linewidth_dim
             } ~
         ] ~
     }
@@ -227,7 +301,7 @@
         Page / Resources / Pattern
     } {
         hawkdraw Shading
-        \int_use:N \g__hawkdraw_shading_int
+        \int_use:N \g__hawkdraw_shading_obj_int
     } {
         \pdf_object_ref_last:
     }
@@ -235,14 +309,14 @@
     \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { fill } {
         \hawkdraw_support_pdfliteral_direct:n {
             /Pattern ~ cs ~ /hawkdraw Shading
-            \int_use:N \g__hawkdraw_shading_int
+            \int_use:N \g__hawkdraw_shading_obj_int
             \c_space_tl scn ~
         }
     }
     \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
         \hawkdraw_support_pdfliteral_direct:n {
             /Pattern ~ CS ~ /hawkdraw Shading
-            \int_use:N \g__hawkdraw_shading_int
+            \int_use:N \g__hawkdraw_shading_obj_int
             \c_space_tl SCN ~
         }
     }
