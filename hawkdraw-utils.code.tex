@@ -342,58 +342,8 @@
 
 % ===
 
-\cs_set_eq:NN \hawkdraw_path_use_stroke_bb: \__draw_path_use_stroke_bb:
-
-\cs_set_protected:Npn \hawkdraw_scope_reset_bb_begin: {
-    \draw_scope_begin:
-        \hawkdraw_path_save_bb:
-        \__draw_path_reset_limits:
-}
-\cs_set_protected:Npn \hawkdraw_scope_reset_bb_end: {
-        \hawkdraw_path_restore_bb:
-    \draw_scope_end:
-}
-
-\dim_new:N \g__hawkdraw_path_xmin_dim
-\dim_new:N \g__hawkdraw_path_xmax_dim
-\dim_new:N \g__hawkdraw_path_ymin_dim
-\dim_new:N \g__hawkdraw_path_ymax_dim
-
-\cs_new_protected:Npn \hawkdraw_path_save_bb: {
-    \dim_gset_eq:NN \g__hawkdraw_path_xmin_dim \g__draw_path_xmin_dim
-    \dim_gset_eq:NN \g__hawkdraw_path_xmax_dim \g__draw_path_xmax_dim
-    \dim_gset_eq:NN \g__hawkdraw_path_ymin_dim \g__draw_path_ymin_dim
-    \dim_gset_eq:NN \g__hawkdraw_path_ymax_dim \g__draw_path_ymax_dim
-}
-
-\cs_new_protected:Npn \hawkdraw_path_restore_bb: {
-    \dim_gset_eq:NN \g__draw_path_xmin_dim \g__hawkdraw_path_xmin_dim
-    \dim_gset_eq:NN \g__draw_path_xmax_dim \g__hawkdraw_path_xmax_dim
-    \dim_gset_eq:NN \g__draw_path_ymin_dim \g__hawkdraw_path_ymin_dim
-    \dim_gset_eq:NN \g__draw_path_ymax_dim \g__hawkdraw_path_ymax_dim
-}
-
-\cs_set_protected:Npn \hawkdraw_scope_set_bb:Nn #1#2 {
-    \clist_if_in:NnTF #1 { stroke } {
-        \dim_set:cn { l__hawkdraw_ #2 _bbox_xmin_dim } {
-            \g__draw_path_xmin_dim - 0.5 \l_hawkdraw_path_linewidth_dim
-        }
-        \dim_set:cn { l__hawkdraw_ #2 _bbox_xmax_dim } {
-            \g__draw_path_xmax_dim + 0.5 \l_hawkdraw_path_linewidth_dim
-        }
-        \dim_set:cn { l__hawkdraw_ #2 _bbox_ymin_dim } {
-            \g__draw_path_ymin_dim - 0.5 \l_hawkdraw_path_linewidth_dim
-        }
-        \dim_set:cn { l__hawkdraw_ #2 _bbox_ymax_dim } {
-            \g__draw_path_ymax_dim + 0.5 \l_hawkdraw_path_linewidth_dim
-        }
-    } {
-        \dim_set_eq:cN { l__hawkdraw_ #2 _bbox_xmin_dim } \g__draw_path_xmin_dim
-        \dim_set_eq:cN { l__hawkdraw_ #2 _bbox_xmax_dim } \g__draw_path_xmax_dim
-        \dim_set_eq:cN { l__hawkdraw_ #2 _bbox_ymin_dim } \g__draw_path_ymin_dim
-        \dim_set_eq:cN { l__hawkdraw_ #2 _bbox_ymax_dim } \g__draw_path_ymax_dim
-    }
-}
+\cs_set:Npn \hawkdraw_path_bb_xmin: { \g__draw_path_xmin_dim }
+\cs_set:Npn \hawkdraw_path_bb_ymin: { \g__draw_path_ymin_dim }
 
 % ===
 

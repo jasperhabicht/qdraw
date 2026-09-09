@@ -124,16 +124,16 @@
             }
         } {
             \clist_if_in:nnTF {#2} { stroke } {
-                \clist_if_in:nnTF {#2} { clip } { 
-                    \int_set:Nn #1 { 5 } 
-                } { 
-                    \int_set:Nn #1 { 1 } 
+                \clist_if_in:nnTF {#2} { clip } {
+                    \int_set:Nn #1 { 5 }
+                } {
+                    \int_set:Nn #1 { 1 }
                 }
             } {
-                \clist_if_in:nnTF {#2} { clip } { 
-                    \int_set:Nn #1 { 7 } 
-                } { 
-                    \int_set:Nn #1 { -1 } 
+                \clist_if_in:nnTF {#2} { clip } {
+                    \int_set:Nn #1 { 7 }
+                } {
+                    \int_set:Nn #1 { -1 }
                 }
             }
         }
@@ -442,9 +442,6 @@
         } {
             \clist_item:Nn \l_hawkdraw_node_anchor_poles_clist { 2 }
         } \l_hawkdraw_point_at_fp
-        \clist_if_in:NnT \l_hawkdraw_path_use_clist { stroke } {
-            \hawkdraw_path_use_stroke_bb:
-        }
         \tag_socket_use:n { hawkdraw / node / end }
     \draw_scope_end:
 }

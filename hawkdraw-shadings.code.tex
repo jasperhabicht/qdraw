@@ -55,17 +55,21 @@
 \bool_new:N \l_hawkdraw_shading_circular_bool
 \fp_new:N \l_hawkdraw_shading_angle_delta_fp
 
-\dim_new:N \l__hawkdraw_shading_bbox_xmin_dim
-\dim_new:N \l__hawkdraw_shading_bbox_xmax_dim
-\dim_new:N \l__hawkdraw_shading_bbox_ymin_dim
-\dim_new:N \l__hawkdraw_shading_bbox_ymax_dim
-
-\dim_new:N \l__hawkdraw_shading_bbox_xmin_o_dim
-\dim_new:N \l__hawkdraw_shading_bbox_xmax_o_dim
-\dim_new:N \l__hawkdraw_shading_bbox_ymin_o_dim
-\dim_new:N \l__hawkdraw_shading_bbox_ymax_o_dim
-
 \dim_new:N \l__hawkdraw_shading_path_linewidth_dim
+
+\dim_new:N \l__hawkdraw_shading_bb_xmin_dim
+\dim_new:N \l__hawkdraw_shading_bb_xmax_dim
+\dim_new:N \l__hawkdraw_shading_bb_ymin_dim
+\dim_new:N \l__hawkdraw_shading_bb_ymax_dim
+
+\dim_new:N \l__hawkdraw_shading_bb_xmin_o_dim
+\dim_new:N \l__hawkdraw_shading_bb_xmax_o_dim
+\dim_new:N \l__hawkdraw_shading_bb_ymin_o_dim
+\dim_new:N \l__hawkdraw_shading_bb_ymax_o_dim
+
+\dim_new:N \l__hawkdraw_shading_xoffset_dim
+\dim_new:N \l__hawkdraw_shading_yoffset_dim
+\fp_new:N \l__hawkdraw_shading_origin_fp
 
 \exp_args_generate:n { NVVVV }
 
@@ -78,6 +82,20 @@
     shading                 .code:n         = {
         \int_gincr:N \g__hawkdraw_shading_id_int
         \tl_put_right:Nn \l_hawkdraw_path_preactions_tl {
+            \dim_set:Nn \l__hawkdraw_shading_xoffset_dim {
+                \dim_min:nn {
+                    \hawkdraw_tuple_use_i:n { \g_hawkdraw_path_point_first_fp }
+                } {
+                    \hawkdraw_path_bb_xmin:
+                }
+            }
+            \dim_set:Nn \l__hawkdraw_shading_yoffset_dim {
+                \dim_min:nn {
+                    \hawkdraw_tuple_use_ii:n { \g_hawkdraw_path_point_first_fp }
+                } {
+                    \hawkdraw_path_bb_ymin:
+                }
+            }
             \pdfxform_new:enn {
                 hawkdraw_shading_ \int_use:N \g__hawkdraw_shading_id_int
             } { } {
@@ -85,10 +103,19 @@
                     \draw_begin:
                         \tl_set_eq:NN \l__hawkdraw_path_options_tl \l__hawkdraw_shading_path_options_tl
                         \hawkdraw_path_set_options:
-                        \tl_analysis_log:N \l__draw_linewidth_dim
                         \tl_trim_spaces_apply:nN { \g_hawkdraw_softpath_original_tl } \__hawkdraw_path_process:o
+                        \draw_transform_shift:n {
+                            (
+                                - \l__hawkdraw_shading_xoffset_dim
+                            ,
+                                - \l__hawkdraw_shading_yoffset_dim
+                            )
+                        }
                         \tl_use:N \g_hawkdraw_softpath_original_tl
-                        \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_xmin_dim \g_draw_bb_xmin_dim
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_xmax_dim \g_draw_bb_xmax_dim
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_ymin_dim \g_draw_bb_ymin_dim
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_ymax_dim \g_draw_bb_ymax_dim
                         \hawkdraw_shading_use:n {#1}
                         \draw_path_use_clear:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
                     \draw_end:
@@ -98,17 +125,25 @@
                 \pdfxform_use:e {
                     hawkdraw_shading_ \int_use:N \g__hawkdraw_shading_id_int
                 }
-                \bool_gset_false:N \g__hawkdraw_path_use_clip_bool
             }
             \clist_if_in:NnTF \l_hawkdraw_shading_path_use_clist { stroke } {
-                \draw_box_use:Nn \l__hawkdraw_shading_box {
+                \fp_set:Nn \l__hawkdraw_shading_origin_fp {
                     -0.5 * \l_hawkdraw_path_linewidth_dim
                 ,
-                    -0.5 * \l_hawkdraw_path_linewidth_dim
+                    \fp_if_nan:nTF { \l_hawkdraw_picture_baseline_fp } {
+                        -0.5 * \l_hawkdraw_path_linewidth_dim
+                    } {
+                        \l_hawkdraw_picture_baseline_fp
+                    }
                 }
             } {
-                \draw_box_use:N \l__hawkdraw_shading_box
+                \fp_set:Nn \l__hawkdraw_shading_origin_fp { 0pt , 0pt }
             }
+            \draw_box_use:Nn \l__hawkdraw_shading_box {
+                ( \l__hawkdraw_shading_xoffset_dim , \l__hawkdraw_shading_yoffset_dim ) +
+                \l__hawkdraw_shading_origin_fp
+            }
+            \bool_gset_false:N \g__hawkdraw_path_use_clip_bool
         }
     } ,
     shading ~ colors        .clist_set:N    = \l_hawkdraw_shading_colors_clist ,
@@ -139,11 +174,17 @@
                         \tl_set_eq:NN \l__hawkdraw_path_options_tl \l__hawkdraw_shading_path_options_tl
                         \hawkdraw_path_set_options:
                         \draw_transform_shift:n {
-                            0.5 * \l_hawkdraw_node_natural_width_dim ,
-                            0.5 * \l_hawkdraw_node_natural_height_dim
+                            (
+                                0.5 * \l_hawkdraw_node_natural_width_dim
+                            ,
+                                0.5 * \l_hawkdraw_node_natural_height_dim
+                            )
                         }
                         \tl_use:N \l__hawkdraw_node_frame_path_tl
-                        \hawkdraw_scope_set_bb:Nn \l_hawkdraw_shading_path_use_clist { shading }
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_xmin_dim \g_draw_bb_xmin_dim
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_xmax_dim \g_draw_bb_xmax_dim
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_ymin_dim \g_draw_bb_ymin_dim
+                        \dim_set_eq:NN \l__hawkdraw_shading_bb_ymax_dim \g_draw_bb_ymax_dim
                         \hawkdraw_shading_use:n {#1}
                         \draw_path_use:e { \clist_use:N \l_hawkdraw_shading_path_use_clist }
                     \draw_end:
@@ -155,19 +196,12 @@
                 }
                 \bool_gset_false:N \g__hawkdraw_path_use_clip_bool
             }
-            \clist_if_in:NnTF \l_hawkdraw_shading_path_use_clist { stroke } {
-                \draw_box_use:Nn \l__hawkdraw_shading_box {
+            \draw_box_use:Nn \l__hawkdraw_shading_box {
+                (
                     -0.5 * \l_hawkdraw_node_natural_width_dim
-                    -0.5 * \l_hawkdraw_path_linewidth_dim
                 ,
                     -0.5 * \l_hawkdraw_node_natural_height_dim
-                    -0.5 * \l_hawkdraw_path_linewidth_dim
-                }
-            } {
-                \draw_box_use:Nn \l__hawkdraw_shading_box {
-                    -0.5 * \l_hawkdraw_node_natural_width_dim ,
-                    -0.5 * \l_hawkdraw_node_natural_height_dim
-                }
+                )
             }
         }
     } ,
@@ -199,14 +233,14 @@
     \hawkdraw_shading_create:nV {#1} \l_hawkdraw_shading_colors_clist
 
     % Store original bounding box values for later positioning of pattern
-    \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmin_o_dim
-        \l__hawkdraw_shading_bbox_xmin_dim
-    \dim_set_eq:NN \l__hawkdraw_shading_bbox_xmax_o_dim
-        \l__hawkdraw_shading_bbox_xmax_dim
-    \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymin_o_dim
-        \l__hawkdraw_shading_bbox_ymin_dim
-    \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymax_o_dim
-        \l__hawkdraw_shading_bbox_ymax_dim
+    \dim_set_eq:NN \l__hawkdraw_shading_bb_xmin_o_dim
+        \l__hawkdraw_shading_bb_xmin_dim
+    \dim_set_eq:NN \l__hawkdraw_shading_bb_xmax_o_dim
+        \l__hawkdraw_shading_bb_xmax_dim
+    \dim_set_eq:NN \l__hawkdraw_shading_bb_ymin_o_dim
+        \l__hawkdraw_shading_bb_ymin_dim
+    \dim_set_eq:NN \l__hawkdraw_shading_bb_ymax_o_dim
+        \l__hawkdraw_shading_bb_ymax_dim
 
     \clist_if_in:NnT \l_hawkdraw_shading_path_use_clist { stroke } {
         \dim_set_eq:NN \l__hawkdraw_shading_path_linewidth_dim
@@ -218,24 +252,24 @@
     } {
         \str_if_eq_p:nn {#1} { radial }
     } {
-        \dim_set:Nn \l__hawkdraw_shading_bbox_xmax_dim {
+        \dim_set:Nn \l__hawkdraw_shading_bb_xmax_dim {
             \dim_max:nn {
-                \l__hawkdraw_shading_bbox_xmax_dim
+                \l__hawkdraw_shading_bb_xmax_dim
             } {
-                \l__hawkdraw_shading_bbox_ymax_dim
+                \l__hawkdraw_shading_bb_ymax_dim
             }
         }
-        \dim_set:Nn \l__hawkdraw_shading_bbox_xmin_dim {
+        \dim_set:Nn \l__hawkdraw_shading_bb_xmin_dim {
             \dim_min:nn {
-                \l__hawkdraw_shading_bbox_xmin_dim
+                \l__hawkdraw_shading_bb_xmin_dim
             } {
-                \l__hawkdraw_shading_bbox_ymin_dim
+                \l__hawkdraw_shading_bb_ymin_dim
             }
         }
-        \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymax_dim
-            \l__hawkdraw_shading_bbox_xmax_dim
-        \dim_set_eq:NN \l__hawkdraw_shading_bbox_ymin_dim
-            \l__hawkdraw_shading_bbox_xmin_dim
+        \dim_set_eq:NN \l__hawkdraw_shading_bb_ymax_dim
+            \l__hawkdraw_shading_bb_xmax_dim
+        \dim_set_eq:NN \l__hawkdraw_shading_bb_ymin_dim
+            \l__hawkdraw_shading_bb_xmin_dim
     }
 
     \int_gincr:N \g__hawkdraw_shading_obj_int
@@ -261,26 +295,26 @@
                 -50bp
             } {
                 (
-                    \l__hawkdraw_shading_bbox_xmax_dim -
-                    \l__hawkdraw_shading_bbox_xmin_dim
+                    \l__hawkdraw_shading_bb_xmax_dim -
+                    \l__hawkdraw_shading_bb_xmin_dim
                 ) / 50bp
             } {
                 (
-                    \l__hawkdraw_shading_bbox_ymax_dim -
-                    \l__hawkdraw_shading_bbox_ymin_dim
+                    \l__hawkdraw_shading_bb_ymax_dim -
+                    \l__hawkdraw_shading_bb_ymin_dim
                 ) / 50bp
             } {
                 \l_hawkdraw_shading_rotate_fp
             } {
                 (
-                    \l__hawkdraw_shading_bbox_xmax_o_dim +
-                    \l__hawkdraw_shading_bbox_xmin_o_dim
+                    \l__hawkdraw_shading_bb_xmax_o_dim +
+                    \l__hawkdraw_shading_bb_xmin_o_dim
                 ) / 2 +
                 0.5 * \l__hawkdraw_shading_path_linewidth_dim
             } {
                 (
-                    \l__hawkdraw_shading_bbox_ymax_o_dim +
-                    \l__hawkdraw_shading_bbox_ymin_o_dim
+                    \l__hawkdraw_shading_bb_ymax_o_dim +
+                    \l__hawkdraw_shading_bb_ymin_o_dim
                 ) / 2 +
                 0.5 * \l__hawkdraw_shading_path_linewidth_dim
                 \fp_compare:nNnT { \l_hawkdraw_picture_baseline_fp } < { 0pt } {
