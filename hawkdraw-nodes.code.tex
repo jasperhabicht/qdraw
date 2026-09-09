@@ -570,6 +570,8 @@
         \draw_suspend_begin:
             \tag_socket_use:n { hawkdraw / node / frame / begin }
             \draw_begin:
+                \draw_set_baseline:n { 0pt }
+
                 \bool_if:NT \l__hawkdraw_node_text_rendering_clip_bool {
                     \tl_use:N \l__hawkdraw_node_text_rendering_clip_contents_tl
                 }
