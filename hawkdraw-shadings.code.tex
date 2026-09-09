@@ -104,21 +104,10 @@
                 \draw_box_use:Nn \l__hawkdraw_shading_box {
                     -0.5 * \l_hawkdraw_path_linewidth_dim
                 ,
-                    \fp_if_nan:nTF { \l_hawkdraw_picture_baseline_fp } {
-                        -0.5 * \l_hawkdraw_path_linewidth_dim
-                    } {
-                        \l_hawkdraw_picture_baseline_fp
-                    }
+                    -0.5 * \l_hawkdraw_path_linewidth_dim
                 }
             } {
-                \draw_box_use:Nn \l__hawkdraw_shading_box {
-                    0pt ,
-                    \fp_if_nan:nTF { \l_hawkdraw_picture_baseline_fp } {
-                        0pt
-                    } {
-                        \l_hawkdraw_picture_baseline_fp
-                    }
-                }
+                \draw_box_use:N \l__hawkdraw_shading_box
             }
         }
     } ,
@@ -294,6 +283,9 @@
                     \l__hawkdraw_shading_bbox_ymin_o_dim
                 ) / 2 +
                 0.5 * \l__hawkdraw_shading_path_linewidth_dim
+                \fp_compare:nNnT { \l_hawkdraw_picture_baseline_fp } < { 0pt } {
+                    - \l_hawkdraw_picture_baseline_fp
+                }
             } ~
         ] ~
     }
